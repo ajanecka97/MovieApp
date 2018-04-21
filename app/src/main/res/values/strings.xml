@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">MovieApp</string>
+
+    <string name="popular_movies">Popular movies</string>
+
+    <string name="best_movies">Best movies</string>
+
+    <string name="vote_average_label">Vote average: </string>
+
+    <string name="release_date_label">Release date: </string>
+
+    <string name="plot_synopsis_label">Plot synopsis: </string>
+
+    <string name="poster">Movie poster</string>
+
+    <string name="error_message">Oops! Something went wrong.
+        Make sure you have internet connection :)</string>
+</resources>
