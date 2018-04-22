@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
+import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
@@ -34,6 +35,10 @@ public class MovieActivity extends AppCompatActivity implements MovieListAdapter
     private ProgressBar mProgressBar;
     private TextView mErrorMessage;
 
+    private String sortType;
+
+    private static final String SORT_TYPE_KEY = "sort_type";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,8 +54,12 @@ public class MovieActivity extends AppCompatActivity implements MovieListAdapter
         mRecyclerView.setHasFixedSize(true);
         mMovieListAdapter = new MovieListAdapter(getApplicationContext(), this);
         mRecyclerView.setAdapter(mMovieListAdapter);
-
-        loadData(NetworkUtils.POPULAR_MOVIES);
+        if(savedInstanceState != null){
+            sortType = savedInstanceState.getString(SORT_TYPE_KEY);
+        }else {
+            sortType = NetworkUtils.POPULAR_MOVIES;
+        }
+        loadData(sortType);
     }
 
     private void loadData(String sortType){
@@ -139,12 +148,19 @@ public class MovieActivity extends AppCompatActivity implements MovieListAdapter
         int id = item.getItemId();
 
         if(id == R.id.sort_popular){
-            loadData(NetworkUtils.POPULAR_MOVIES);
+            sortType = NetworkUtils.POPULAR_MOVIES;
         }
         else if(id == R.id.sort_best){
-            loadData(NetworkUtils.BEST_MOVIES);
+            sortType = NetworkUtils.BEST_MOVIES;
         }
-
+        loadData(sortType);
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putString(SORT_TYPE_KEY, sortType);
+
+        super.onSaveInstanceState(outState);
     }
 }
