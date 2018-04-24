@@ -1,6 +1,11 @@
 package com.example.android.movieapp.utils;
 
 import com.example.android.movieapp.model.MovieModel;
+import com.example.android.movieapp.model.ReviewModel;
+import com.example.android.movieapp.model.VideoModel;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -78,5 +83,74 @@ public class JSONUtils {
             e.printStackTrace();
         }
         return movie;
+    }
+
+    public static List<ReviewModel> parseReviewJson(String reviewJson){
+        List<ReviewModel> reviewList = new ArrayList<>();
+        try{
+            JSONObject parsedJson = new JSONObject(reviewJson);
+            JSONArray reviewJsonArray = parsedJson.getJSONArray("results");
+            if(reviewJsonArray != null) {
+                for (int i = 0; i < reviewJsonArray.length(); i++) {
+                    ReviewModel review = JSONUtils.parseReviewDetailsJson(reviewJsonArray.getJSONObject(i));
+                    reviewList.add(review);
+                }
+            }
+        }
+        catch (JSONException e){
+            e.printStackTrace();
+        }
+        return reviewList;
+    }
+
+    private static ReviewModel parseReviewDetailsJson(JSONObject json){
+        ReviewModel reviewModel = new ReviewModel();
+        try{
+            String author = json.getString("author");
+            String content = json.getString("content");
+
+            reviewModel.setAuthor(author);
+            reviewModel.setContent(content);
+        } catch (JSONException e){
+            e.printStackTrace();
+        }
+        return reviewModel;
+    }
+
+    public static List<VideoModel> parseVideoJson(String videoJson){
+        List<VideoModel> videoList = new ArrayList<>();
+        try{
+            JSONObject parsedJson = new JSONObject(videoJson);
+            JSONArray videoJsonArray = parsedJson.getJSONArray("results");
+            if(videoJsonArray != null) {
+                for (int i = 0; i < videoJsonArray.length(); i++) {
+                    VideoModel video = JSONUtils.parseVideoDetailsJson(videoJsonArray.getJSONObject(i));
+                    videoList.add(video);
+                }
+            }
+        }
+        catch (JSONException e){
+            e.printStackTrace();
+        }
+        return videoList;
+    }
+
+    private static VideoModel parseVideoDetailsJson(JSONObject json){
+        VideoModel videoModel = new VideoModel();
+        try{
+            String key = json.getString("key");
+            String name = json.getString("name");
+            String site = json.getString("site");
+            String type = json.getString("type");
+
+            videoModel.setKey(key);
+            videoModel.setName(name);
+            videoModel.setSite(site);
+            videoModel.setType(type);
+        } catch (JSONException e){
+            e.printStackTrace();
+        }
+
+        return videoModel;
     }
 }
