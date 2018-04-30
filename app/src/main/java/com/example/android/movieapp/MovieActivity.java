@@ -72,7 +72,10 @@ public class MovieActivity extends AppCompatActivity implements MovieListAdapter
         }else {
             sortType = NetworkUtils.POPULAR_MOVIES;
         }
-        loadData(sortType);
+        if(sortType.equals(NetworkUtils.BEST_MOVIES) ||
+                sortType.equals(NetworkUtils.POPULAR_MOVIES)){
+            loadData(sortType);
+        }
 
         getSupportLoaderManager().initLoader(FAVORITE_LOADER_ID, null, this);
 
