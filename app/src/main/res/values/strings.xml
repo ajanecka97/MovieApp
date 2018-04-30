@@ -15,4 +15,15 @@
 
     <string name="error_message">Oops! Something went wrong.
         Make sure you have internet connection :)</string>
+
+    <string name="thumbnail">This is thumbnail for movie trailer</string>
+
+    <string name="favorites">Favorites</string>
+
+    <string name="like">I like it!</string>
+    <string name="unlike">I don\'t like it...</string>
+
+    <string name="videos">Videos:</string>
+
+    <string name="reviews">Reviews:</string>
 </resources>

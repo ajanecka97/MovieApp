@@ -83,6 +83,10 @@ public class MovieModel implements Parcelable {
         this.posterPath = "http://image.tmdb.org/t/p/w500/" + posterPath;
     }
 
+    public void setFullPosterPath(String posterPath){
+        this.posterPath = posterPath;
+    }
+
     public String getOriginalLanguage() {
         return originalLanguage;
     }
@@ -190,5 +194,8 @@ public class MovieModel implements Parcelable {
         }
     };
 
-
+    @Override
+    public String toString() {
+        return movieTitle + ": " + posterPath;
+    }
 }

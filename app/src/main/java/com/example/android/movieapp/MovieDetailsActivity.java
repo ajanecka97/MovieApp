@@ -1,17 +1,28 @@
 package com.example.android.movieapp;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.example.android.movieapp.data.MovieContract;
+import com.example.android.movieapp.data.MovieDbHelper;
 import com.example.android.movieapp.model.MovieModel;
 import com.example.android.movieapp.model.ReviewModel;
 import com.example.android.movieapp.model.VideoModel;
@@ -22,29 +33,41 @@ import com.squareup.picasso.Picasso;
 import java.net.URL;
 import java.util.List;
 
-public class MovieDetailsActivity extends AppCompatActivity {
+import butterknife.BindView;
+import butterknife.ButterKnife;
 
-    TextView movieTitle;
-    TextView voteAvg;
-    TextView releaseDate;
-    TextView plotSynopsis;
-    ImageView poster;
+public class MovieDetailsActivity extends AppCompatActivity implements TrailerListAdapter.TrailerListAdapterOnClickHandler{
+
+    @BindView(R.id.tv_movie_title) TextView movieTitle;
+    @BindView(R.id.tv_vote_average) TextView voteAvg;
+    @BindView(R.id.tv_release_date) TextView releaseDate;
+    @BindView(R.id.tv_plot_synopsis) TextView plotSynopsis;
+    @BindView(R.id.iv_poster2) ImageView poster;
+    @BindView(R.id.review) TextView review;
+    @BindView(R.id.like_button) Button likeButton;
+    @BindView(R.id.unlike_button) Button unlikeButton;
+    @BindView(R.id.rv_trailer_list) RecyclerView trailerRecyclerView;
+    @BindView(R.id.tv_trailers) TextView trailers;
+
+    private TrailerListAdapter trailerListAdapter;
+
     MovieModel movieDetails;
     List<VideoModel> videos;
-    TextView review;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_movie_details);
+        ButterKnife.bind(this);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-
-        movieTitle = (TextView) findViewById(R.id.tv_movie_title);
-        voteAvg = (TextView) findViewById(R.id.tv_vote_average);
-        releaseDate = (TextView) findViewById(R.id.tv_release_date);
-        plotSynopsis = (TextView) findViewById(R.id.tv_plot_synopsis);
-        poster = (ImageView) findViewById(R.id.iv_poster2);
-        review = (TextView) findViewById(R.id.review);
+        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this,
+                LinearLayoutManager.HORIZONTAL, false);
+        linearLayoutManager.setMeasurementCacheEnabled(false);
+        trailerRecyclerView.setLayoutManager(linearLayoutManager);
+        trailerRecyclerView.setHasFixedSize(true);
+        trailerListAdapter = new TrailerListAdapter(getApplicationContext(), this);
+        trailerRecyclerView.setAdapter(trailerListAdapter);
 
         Intent intentThatStartedThisActivity = getIntent();
         if(intentThatStartedThisActivity.hasExtra("movieIntent")){
@@ -57,6 +80,14 @@ public class MovieDetailsActivity extends AppCompatActivity {
                     .load(movieDetails.getPosterPath())
                     .into(poster);
             loadData();
+            if(CheckIsDataAlreadyInDBorNot(MovieContract.FavoriteEntry.TABLE_NAME, MovieContract.FavoriteEntry.COLUMN_ID, String.valueOf(movieDetails.getMovieID()))){
+                likeButton.setVisibility(View.GONE);
+                unlikeButton.setVisibility(View.VISIBLE);
+            }
+            else {
+                likeButton.setVisibility(View.VISIBLE);
+                unlikeButton.setVisibility(View.GONE);
+            }
         }
     }
 
@@ -104,9 +135,25 @@ public class MovieDetailsActivity extends AppCompatActivity {
                     review.append(reviewModel.getContent() + "\n\n\n");
                 }
                 videos = JSONUtils.parseVideoJson(s[1]);
+                trailerListAdapter.setTrailerData(videos);
             }else{
 
             }
+        }
+    }
+
+    @Override
+    public void onClick(VideoModel trailer) {
+        String baseUri = "https://www.youtube.com/watch";
+        Uri uri = Uri.parse(baseUri).buildUpon()
+                .appendQueryParameter("v", trailer.getKey())
+                .build();
+
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setData(uri);
+
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivity(intent);
         }
     }
 
@@ -123,5 +170,49 @@ public class MovieDetailsActivity extends AppCompatActivity {
             startActivity(intent);
         }
 
+    }
+
+    public void likeMovie(View view){
+        ContentValues contentValues = new ContentValues();
+
+        contentValues.put(MovieContract.FavoriteEntry.COLUMN_ID, movieDetails.getMovieID());
+        contentValues.put(MovieContract.FavoriteEntry.COLUMN_TITLE, movieDetails.getMovieTitle());
+        contentValues.put(MovieContract.FavoriteEntry.COLUMN_POSTER, movieDetails.getPosterPath());
+        contentValues.put(MovieContract.FavoriteEntry.COLUMN_RATING, movieDetails.getVoteAvg());
+        contentValues.put(MovieContract.FavoriteEntry.COLUMN_RELEASE_DATE, movieDetails.getReleaseDate());
+        contentValues.put(MovieContract.FavoriteEntry.COLUMN_SYNOPSIS, movieDetails.getOverwiew());
+
+        Uri uri = getContentResolver().insert(MovieContract.FavoriteEntry.CONTENT_URI, contentValues);
+        if(uri != null){
+            Toast.makeText(this, "Movie was added to " + uri, Toast.LENGTH_SHORT).show();
+        }
+        likeButton.setVisibility(View.GONE);
+        unlikeButton.setVisibility(View.VISIBLE);
+    }
+
+    public void unlikeMovie(View view){
+        String selection = MovieContract.FavoriteEntry.COLUMN_ID + "=?";
+        String movieID = String.valueOf(movieDetails.getMovieID());
+        String[] selectionArgs = new String[]{movieID};
+
+        int rowsDeleted = getContentResolver().delete(MovieContract.FavoriteEntry.CONTENT_URI,
+                selection, selectionArgs);
+
+        Toast.makeText(this, "Rows deleted: " + rowsDeleted, Toast.LENGTH_SHORT).show();
+        likeButton.setVisibility(View.VISIBLE);
+        unlikeButton.setVisibility(View.GONE);
+    }
+
+    boolean CheckIsDataAlreadyInDBorNot(String TableName, String dbfield, String fieldValue) {
+        MovieDbHelper movieDbHelper = new MovieDbHelper(this);
+        SQLiteDatabase sqldb = movieDbHelper.getReadableDatabase();
+        String Query = "Select * from " + TableName + " where " + dbfield + " = " + fieldValue;
+        Cursor cursor = sqldb.rawQuery(Query, null);
+        if(cursor.getCount() <= 0){
+            cursor.close();
+            return false;
+        }
+        cursor.close();
+        return true;
     }
 }
