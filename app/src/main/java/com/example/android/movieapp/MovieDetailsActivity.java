@@ -9,6 +9,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -18,6 +19,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -48,11 +50,17 @@ public class MovieDetailsActivity extends AppCompatActivity implements TrailerLi
     @BindView(R.id.unlike_button) Button unlikeButton;
     @BindView(R.id.rv_trailer_list) RecyclerView trailerRecyclerView;
     @BindView(R.id.tv_trailers) TextView trailers;
+    @BindView(R.id.scroll_view) ScrollView scrollView;
 
     private TrailerListAdapter trailerListAdapter;
+    private int scrollPositionX = -1;
+    private int scrollPositionY = -1;
 
     MovieModel movieDetails;
     List<VideoModel> videos;
+
+    private static final String SCROLL_POSITION_X_KEY = "scroll_position_x";
+    private static final String SCROLL_POSITION_Y_KEY = "scroll_position_y";
 
 
     @Override
@@ -89,6 +97,11 @@ public class MovieDetailsActivity extends AppCompatActivity implements TrailerLi
                 unlikeButton.setVisibility(View.GONE);
             }
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
     }
 
     private void loadData(){
@@ -136,6 +149,7 @@ public class MovieDetailsActivity extends AppCompatActivity implements TrailerLi
                 }
                 videos = JSONUtils.parseVideoJson(s[1]);
                 trailerListAdapter.setTrailerData(videos);
+                scroll();
             }else{
 
             }
@@ -155,21 +169,6 @@ public class MovieDetailsActivity extends AppCompatActivity implements TrailerLi
         if (intent.resolveActivity(getPackageManager()) != null) {
             startActivity(intent);
         }
-    }
-
-    public void playTrailer(View view){
-        String baseUri = "https://www.youtube.com/watch";
-        Uri uri = Uri.parse(baseUri).buildUpon()
-                .appendQueryParameter("v", videos.get(0).getKey())
-                .build();
-
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setData(uri);
-
-        if (intent.resolveActivity(getPackageManager()) != null) {
-            startActivity(intent);
-        }
-
     }
 
     public void likeMovie(View view){
@@ -214,5 +213,35 @@ public class MovieDetailsActivity extends AppCompatActivity implements TrailerLi
         }
         cursor.close();
         return true;
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        scrollPositionX = scrollView.getScrollX();
+        scrollPositionY = scrollView.getScrollY();
+
+        outState.putInt(SCROLL_POSITION_X_KEY, scrollPositionX);
+        outState.putInt(SCROLL_POSITION_Y_KEY, scrollPositionY);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        scrollPositionX = savedInstanceState.getInt(SCROLL_POSITION_X_KEY);
+        scrollPositionY = savedInstanceState.getInt(SCROLL_POSITION_Y_KEY);
+        scroll();
+    }
+
+    private void scroll(){
+        if (scrollPositionX != 0 || scrollPositionY != 0) {
+            scrollView.post(new Runnable() {
+                @Override
+                public void run() {
+                    scrollView.scrollTo(scrollPositionX, scrollPositionY);
+                }
+            });
+        }
     }
 }

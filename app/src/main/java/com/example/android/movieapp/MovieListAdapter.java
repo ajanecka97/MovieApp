@@ -83,4 +83,5 @@ public class MovieListAdapter extends RecyclerView.Adapter<MovieListAdapter.Movi
         this.movieData = movieData;
         notifyDataSetChanged();
     }
+
 }

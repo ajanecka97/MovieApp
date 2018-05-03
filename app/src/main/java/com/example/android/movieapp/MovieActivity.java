@@ -8,10 +8,12 @@ import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
+import android.os.Parcelable;
 import android.support.v4.app.LoaderManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Menu;
@@ -48,10 +50,14 @@ public class MovieActivity extends AppCompatActivity implements MovieListAdapter
     private String sortType;
     private List<MovieModel> movies;
     private Cursor movieCursor;
+    private GridLayoutManager mLayoutManager;
 
     private static final int FAVORITE_LOADER_ID = 123;
     private static final String SORT_TYPE_KEY = "sort_type";
+    private static final String RECYCLER_VIEW_STATE_KEY = "recycler_view_state";
     private static final String FAVORITE = "favorite";
+
+    private Parcelable mMovieAdapterState;
 
 
     @Override
@@ -62,11 +68,13 @@ public class MovieActivity extends AppCompatActivity implements MovieListAdapter
 
         ButterKnife.bind(this);
 
-        GridLayoutManager gridManager = new GridLayoutManager(this, 2);
-        mRecyclerView.setLayoutManager(gridManager);
-        mRecyclerView.setHasFixedSize(true);
+        mLayoutManager = new GridLayoutManager(this, 2);
         mMovieListAdapter = new MovieListAdapter(getApplicationContext(), this);
         mRecyclerView.setAdapter(mMovieListAdapter);
+        mRecyclerView.setLayoutManager(mLayoutManager);
+        mRecyclerView.setHasFixedSize(true);
+
+
         if(savedInstanceState != null){
             sortType = savedInstanceState.getString(SORT_TYPE_KEY);
         }else {
@@ -80,6 +88,9 @@ public class MovieActivity extends AppCompatActivity implements MovieListAdapter
         getSupportLoaderManager().initLoader(FAVORITE_LOADER_ID, null, this);
 
         mMovieListAdapter.setMovieData(movies);
+        if(mMovieAdapterState != null){
+            mLayoutManager.onRestoreInstanceState(mMovieAdapterState);
+        }
         showRecyclerView();
     }
 
@@ -88,6 +99,13 @@ public class MovieActivity extends AppCompatActivity implements MovieListAdapter
         super.onResume();
         getSupportLoaderManager().restartLoader(FAVORITE_LOADER_ID, null, this);
     }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+    }
+
 
     private void loadData(String sortType){
         ConnectivityManager cm =
@@ -134,6 +152,9 @@ public class MovieActivity extends AppCompatActivity implements MovieListAdapter
             if (s != null) {
                 movies = JSONUtils.parseMovieJson(s);
                 mMovieListAdapter.setMovieData(movies);
+                if(mMovieAdapterState != null){
+                    mLayoutManager.onRestoreInstanceState(mMovieAdapterState);
+                }
                 showRecyclerView();
             }else{
                 showErrorMessage();
@@ -188,6 +209,9 @@ public class MovieActivity extends AppCompatActivity implements MovieListAdapter
         if(sortType.equals(FAVORITE)){
             movies = loadDataFromCursor();
             mMovieListAdapter.setMovieData(movies);
+            if(mMovieAdapterState != null){
+                mLayoutManager.onRestoreInstanceState(mMovieAdapterState);
+            }
         }
     }
 
@@ -245,11 +269,21 @@ public class MovieActivity extends AppCompatActivity implements MovieListAdapter
         return super.onOptionsItemSelected(item);
     }
 
+
     @Override
     public void onSaveInstanceState(Bundle outState) {
         outState.putString(SORT_TYPE_KEY, sortType);
-
+        mMovieAdapterState = mLayoutManager.onSaveInstanceState();
+        outState.putParcelable(RECYCLER_VIEW_STATE_KEY, mMovieAdapterState);
         super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        if(savedInstanceState != null){
+            mMovieAdapterState = savedInstanceState.getParcelable(RECYCLER_VIEW_STATE_KEY);
+        }
     }
 
     private List<MovieModel> loadDataFromCursor(){
